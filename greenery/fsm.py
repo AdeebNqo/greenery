@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-
+from multiprocessing import Process, Queue, cpu_count, Lock
+import time
 class fsm:
 	'''
 		A Finite State Machine or FSM has an alphabet and a set of states. At any
@@ -34,6 +35,10 @@ class fsm:
 			for symbol in self.alphabet:
 				assert symbol in self.map[state]
 				assert self.map[state][symbol] in self.states
+
+		#have to use this nonsense init since fsm is immutable
+		self.__dict__["parrfollowlist"] = [] # list that will contain items produced by processes
+		self.__dict__["proclock"      ] = Lock()  #lock to manage access to parrfollowlist
 
 	def accepts(self, input):
 		'''This is actually only used for unit testing purposes'''
@@ -283,6 +288,16 @@ class fsm:
 			self.map
 		).reduce()
 
+
+	def parrfollow(self, start, end, keys, current, symbol):
+		for i in range(start,end+1):
+			prev = keys[i]
+			for state in current:
+				if self.map[prev][symbol] == state:
+					self.proclock.acquire()
+					self.parrfollowlist.append(prev)
+					self.proclock.release()
+
 	def __reversed__(self):
 		'''
 			Return a new FSM such that for every string that self accepts (e.g.
@@ -296,13 +311,42 @@ class fsm:
 
 		# Find every possible way to reach the current state-set
 		# using this symbol.
+
 		def follow(current, symbol):
-			return frozenset([
-				prev
-				for prev in self.map
-				for state in current
-				if self.map[prev][symbol] == state
-			])
+			maplength = len(self.map)
+			if maplength>10	:
+				self.parrfollowlist[:] = []#clearing list
+				
+				numprocesses = cpu_count()
+				keys = self.map.keys()
+				size = maplength/numprocesses
+
+				processes = []
+
+				left = 0
+				right = size
+				index = 1
+				while right<=maplength-1:
+					processes.append(Process(target=self.parrfollow, args=(left, right, keys, current, symbol)))
+					left = right+1
+					index = index+1
+					right = index*size+(index-1)
+				if right>=maplength:
+					processes.append(Process(target=self.parrfollow, args=(left, maplength-1, keys, current, symbol)))
+
+				for proc in processes:
+					proc.start()
+				for proc in processes:
+					proc.join()
+				return frozenset(self.parrfollowlist)
+			else:
+				fset = frozenset([
+					prev
+					for prev in self.map
+					for state in current
+					if self.map[prev][symbol] == state
+				])
+				return fset
 
 		# A state-set is final if the initial state is in it.
 		def final(state):
