@@ -1,5 +1,7 @@
 # greenery
 
+[![Build Status](https://drone.io/github.com/AdeebNqo/greenery/status.png)](https://drone.io/github.com/AdeebNqo/greenery/latest)
+
 Tools for parsing and manipulating regular expressions (`greenery.lego`), for producing finite-state machines (`greenery.fsm`), and for freely converting between the two.
 
 This project was undertaken because I wanted to be able to **compute the intersection between two regular expressions**. The "intersection" is the set of strings which both regexes will accept, represented as a third regular expression.
@@ -342,5 +344,5 @@ To make version 1.x style code work with either version 1.x or version 2.x, use:
         import greenery.v1 as greenery
     except ImportError:
         import greenery
-    
+
     # V1 code
