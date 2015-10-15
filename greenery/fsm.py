@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from multiprocessing import Process, Queue, cpu_count, Lock
 import time
+from math import ceil, floor
 class fsm:
 	'''
 		A Finite State Machine or FSM has an alphabet and a set of states. At any
@@ -316,7 +317,7 @@ class fsm:
 			maplength = len(self.map)
 			if maplength>10	:
 				self.parrfollowlist[:] = []#clearing list
-				
+
 				numprocesses = cpu_count()
 				keys = self.map.keys()
 				size = maplength/numprocesses
@@ -324,15 +325,15 @@ class fsm:
 				processes = []
 
 				left = 0
-				right = size
+				right = int(ceil(size))
 				index = 1
 				while right<=maplength-1:
-					processes.append(Process(target=self.parrfollow, args=(left, right, keys, current, symbol)))
-					left = right+1
+					processes.append(Process(target=self.parrfollow, args=(left, right, list(keys), current, symbol)))
+					left = int(floor(right+1))
 					index = index+1
-					right = index*size+(index-1)
+					right = int(ceil(index*size+(index-1)))
 				if right>=maplength:
-					processes.append(Process(target=self.parrfollow, args=(left, maplength-1, keys, current, symbol)))
+					processes.append(Process(target=self.parrfollow, args=(left, maplength-1, list(keys), current, symbol)))
 
 				for proc in processes:
 					proc.start()
